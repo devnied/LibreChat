@@ -91,7 +91,13 @@ function isStreamableHTTPOptions(options: t.MCPOptions): options is t.Streamable
 }
 
 const FIVE_MINUTES = 5 * 60 * 1000;
-const DEFAULT_TIMEOUT = 60000;
+/**
+ * Default per-request (tool call) timeout in ms, admin-overridable via the
+ * `MCP_DEFAULT_TIMEOUT_MS` env var. Applies to every MCP server that does not
+ * declare an explicit `timeout` — including user-added (UI) servers, which share
+ * this connection constructor and have no way to set a timeout themselves.
+ */
+const DEFAULT_TIMEOUT = getNonNegativeIntegerEnv('MCP_DEFAULT_TIMEOUT_MS', 60000);
 /** SSE connections through proxies may need longer initial handshake time */
 const SSE_CONNECT_TIMEOUT = 120000;
 const DEFAULT_INIT_TIMEOUT = 30000;
@@ -1237,7 +1243,7 @@ export class MCPConnection extends EventEmitter {
     this.ephemeralConnection = params.ephemeralConnection === true;
     this.proxyConfig = getMCPProxyConfig(params.serverConfig);
     this.iconPath = params.serverConfig.iconPath;
-    this.timeout = params.serverConfig.timeout;
+    this.timeout = params.serverConfig.timeout ?? DEFAULT_TIMEOUT;
     this.sseReadTimeout = params.serverConfig.sseReadTimeout;
     this.lastPingTime = Date.now();
     this.createdAt = Date.now(); // Record creation timestamp for staleness detection
